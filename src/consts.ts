@@ -11,7 +11,7 @@ export const SOCIAL = [
 // enabling Discussions on the repository; comments stay hidden while repoId is empty.
 export const GISCUS = {
   repo: 'haborite/haborite.github.io',
-  repoId: '',
+  repoId: 'R_kgDOKypmGg',
   category: 'Comments',
-  categoryId: '',
+  categoryId: 'DIC_kwDOKypmGs4DIo7n',
 };
