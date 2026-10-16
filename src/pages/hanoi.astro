@@ -1,0 +1,192 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="ハノイの塔" description="2018年10月から64枚の円盤を移し続けている、世界の終わりまでのカウントダウン。">
+  <h1 class="page-title">ハノイの塔</h1>
+
+  <blockquote class="tradition">
+    インドのガンジス河畔のヴァラナシ（ベナレス）に、世界の中心を表すという巨大な寺院がある。<br />
+    そこに神が天地創造とともに3本の金剛石の柱を打ち立て、うち1本に64枚の純金の円盤を重ね置いた。<br />
+    バラモンたちは神に命じられるまま、昼夜を問わずこれらの円盤を別の柱に移し替える作業を続けている。<br />
+    64枚の円盤全てを移し終えた瞬間、この世界は音をたてて崩れ落ち、終焉を迎えるという・・・。
+    <cite>— エドゥアール・リュカ</cite>
+  </blockquote>
+
+  <canvas id="hanoi" width="960" height="720" aria-label="ハノイの塔の現在の状態"></canvas>
+
+  <dl class="stats">
+    <div><dt>経過手数</dt><dd id="moves">–</dd></div>
+    <div><dt>進捗</dt><dd id="progress">–</dd></div>
+    <div><dt>次の段の完了</dt><dd id="next">–</dd></div>
+    <div><dt>世界の終わり</dt><dd id="end">–</dd></div>
+  </dl>
+
+  <ul class="rules">
+    <li>ルール1: 最初は左端の柱に64枚の円盤が積み重ねられており、これらすべてを右端の柱に移せば終了</li>
+    <li>ルール2: 一度に動かせる円盤は一つ</li>
+    <li>ルール3: 小さな円盤の上に大きな円盤を乗せることはできない</li>
+  </ul>
+
+  <h2>履歴</h2>
+  <p class="muted note">
+    2018-10-14 17:16:51 (JST) に開始し、毎秒20手のペースで最短手順どおりに円盤を動かし続けています。盤面は開始時刻からの経過時間で計算しているため、どの端末で開いても同じ状態が表示されます。
+  </p>
+  <ol class="history" id="history" reversed></ol>
+</Base>
+
+<script>
+  const DISCS = 64;
+  const START = Date.parse('2018-10-14T17:16:51+09:00');
+  const RATE = 20; // moves per second
+  const TOTAL = 2n ** BigInt(DISCS) - 1n;
+
+  const canvas = document.getElementById('hanoi') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  const W = canvas.width;
+  const H = canvas.height;
+  const pegX = [W / 6, W / 2, (W * 5) / 6];
+  const pegTop = H / 20;
+  const pegLen = pegTop * 18;
+  const baseY = pegTop + pegLen;
+  const maxDiscW = W / 4;
+  const minDiscW = maxDiscW / 5;
+  const discH = (pegLen - 10) / DISCS;
+
+  const fmt = (t: number) =>
+    new Date(t).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  /** Peg contents (bottom to top) after `count` moves of the optimal solution. */
+  function hanoi(count: number): number[][] {
+    const state: number[][] = [[], [], []];
+    const bits = count.toString(2).padStart(DISCS, '0').slice(-DISCS);
+    let parity = 1;
+    let prePm = -1;
+    let prePeg = 3;
+    for (let i = 0; i < DISCS; i++) {
+      const pm = bits[i] === '1' ? 1 : -1;
+      const peg = (prePeg + ((prePm - pm) * parity) / 2) % 3;
+      state[peg].push(DISCS - i);
+      parity = -parity;
+      prePm = pm;
+      prePeg = peg + 3;
+    }
+    return state;
+  }
+
+  function draw(state: number[][]) {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = dark ? '#2a2f30' : '#8a8f8c';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgb(192,192,64)';
+    ctx.fillRect(W / 100, baseY, (W * 98) / 100, 10);
+    for (const x of pegX) ctx.fillRect(x - 4, pegTop, 8, pegLen);
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textBaseline = 'middle';
+    state.forEach((discs, peg) => {
+      discs.forEach((n, order) => {
+        const w = n * (maxDiscW / DISCS) + minDiscW;
+        const y = baseY - discH * (order + 1);
+        ctx.globalAlpha = 0.75;
+        ctx.fillStyle = `hsl(${((n + 18) * -360) / DISCS}, 100%, 50%)`;
+        ctx.fillRect(pegX[peg] - w / 2, y, w, discH);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#fff';
+        const label = String(n);
+        ctx.fillText(label, pegX[peg] - ctx.measureText(label).width / 2, y + discH / 2);
+      });
+    });
+  }
+
+  const stageTime = (k: number) => START + ((2 ** k - 1) / RATE) * 1000;
+
+  function renderHistory(now: number) {
+    const items = [`<li>${fmt(START)}: 世界の終わりまでのカウントを開始しました。</li>`];
+    for (let k = 1; k <= DISCS && stageTime(k) <= now; k++) {
+      items.push(`<li>${fmt(stageTime(k))}: ${k} 段目までの移動が完了しました。残り${DISCS - k}段の移動で世界が終了します。</li>`);
+    }
+    document.getElementById('history')!.innerHTML = items.reverse().join('');
+  }
+
+  const yearsFrom = (ms: number) => ms / (365.2425 * 86400 * 1000);
+  const endYears = yearsFrom(Number(TOTAL) / RATE * 1000);
+  document.getElementById('end')!.textContent = `開始から約 ${(endYears / 1e8).toFixed(0)} 億年後`;
+
+  let lastCount = -1;
+  let lastStage = -1;
+  function tick() {
+    const now = Date.now();
+    const count = Math.floor(((now - START) / 1000) * RATE);
+    if (count !== lastCount) {
+      lastCount = count;
+      draw(hanoi(count));
+      document.getElementById('moves')!.textContent = `${count.toLocaleString('ja-JP')} / ${TOTAL.toLocaleString('ja-JP')}`;
+      document.getElementById('progress')!.textContent = `${((count / Number(TOTAL)) * 100).toExponential(3)} %`;
+      const stage = Math.floor(Math.log2(count + 1));
+      if (stage !== lastStage) {
+        lastStage = stage;
+        renderHistory(now);
+        const t = stageTime(stage + 1);
+        const rest = t - now;
+        const y = yearsFrom(rest);
+        document.getElementById('next')!.textContent =
+          `${stage + 1} 段目: ` + (y < 50 ? fmt(t) : `約 ${Math.round(y).toLocaleString('ja-JP')} 年後`);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  window.addEventListener('themechange', () => draw(hanoi(lastCount)));
+  tick();
+</script>
+
+<style>
+  .tradition {
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+    font-style: italic;
+    color: var(--fg-muted);
+    border-left: 3px solid var(--border);
+    margin: 0 0 1.5rem;
+    padding: 0.25rem 1rem;
+    line-height: 1.9;
+  }
+  .tradition cite {
+    display: block;
+    text-align: right;
+  }
+  canvas {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    display: block;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+  .stats div {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.8rem;
+  }
+  .stats dt {
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+  }
+  .stats dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+  }
+  .note {
+    font-size: 0.875rem;
+  }
+  .history {
+    font-size: 0.875rem;
+    padding-left: 0;
+    list-style: none;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

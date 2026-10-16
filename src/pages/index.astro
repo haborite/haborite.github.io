@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import PostList from '../components/PostList.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getPosts } from '../lib/posts';
+import { PROJECT_GROUPS } from '../data/projects';
+import { SITE_DESCRIPTION, SOCIAL } from '../consts';
+
+const posts = (await getPosts()).slice(0, 8);
+const featured = PROJECT_GROUPS.flatMap((g) => g.items).filter((p) => p.featured);
+---
+
+<Base>
+  <section class="intro">
+    <h1>haborite</h1>
+    <p>{SITE_DESCRIPTION}化学・物理、ハードウェア工作、Linux やネットワークまわりの調べものを書き残しています。</p>
+    <p class="intro-links">
+      {SOCIAL.map((s) => <a href={s.href} rel={s.rel}>{s.label}</a>)}
+      <a href="/rss.xml">RSS</a>
+    </p>
+  </section>
+
+  <h2 class="section-title">新しい記事 <a href="/blog/">すべての記事 →</a></h2>
+  <PostList posts={posts} />
+
+  <h2 class="section-title">作ったもの <a href="/projects/">一覧 →</a></h2>
+  <div class="cards">
+    {featured.map((p) => <ProjectCard project={p} />)}
+  </div>
+</Base>
+
+<style>
+  .intro h1 {
+    font-size: 2rem;
+    margin: 0 0 0.5rem;
+  }
+  .intro p {
+    margin: 0.25rem 0;
+    color: var(--fg-muted);
+  }
+  .intro-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem !important;
+  }
+</style>

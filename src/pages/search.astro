@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Search" description="記事の全文検索">
+  <Fragment slot="head">
+    <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+  </Fragment>
+  <h1 class="page-title">Search</h1>
+  <div id="search"></div>
+  <noscript>検索には JavaScript が必要です。</noscript>
+  <script is:inline src="/pagefind/pagefind-ui.js"></script>
+  <script is:inline>
+    if (window.PagefindUI) {
+      new PagefindUI({
+        element: '#search',
+        showSubResults: true,
+        showImages: false,
+        translations: { placeholder: '記事を検索', zero_results: '「[SEARCH_TERM]」に一致する記事はありません' },
+      });
+      const q = new URLSearchParams(location.search).get('q');
+      if (q) {
+        const input = document.querySelector('#search input');
+        if (input) { input.value = q; input.dispatchEvent(new Event('input')); }
+      }
+    } else {
+      document.getElementById('search').textContent = '検索インデックスは本番ビルド（npm run build）でのみ生成されます。';
+    }
+  </script>
+</Base>
+
+<style is:global>
+  #search {
+    --pagefind-ui-primary: var(--accent);
+    --pagefind-ui-text: var(--fg);
+    --pagefind-ui-background: var(--bg);
+    --pagefind-ui-border: var(--border);
+    --pagefind-ui-tag: var(--bg-soft);
+    --pagefind-ui-font: var(--font-sans);
+  }
+</style>

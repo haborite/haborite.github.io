@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { PROJECT_GROUPS } from '../data/projects';
+---
+
+<Base title="Projects" description="haborite が作ったアプリ・ゲーム・ツール">
+  <h1 class="page-title">Projects</h1>
+  <p class="muted">その他のリポジトリは <a href="https://github.com/haborite?tab=repositories">GitHub</a> にあります。</p>
+  {
+    PROJECT_GROUPS.map((g) => (
+      <section>
+        <h2 class="section-title">{g.title}</h2>
+        <div class="cards">
+          {g.items.map((p) => <ProjectCard project={p} />)}
+        </div>
+      </section>
+    ))
+  }
+</Base>

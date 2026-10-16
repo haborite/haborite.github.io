@@ -1,0 +1,67 @@
+---
+import { GISCUS } from '../consts';
+import type { Post } from '../lib/posts';
+
+interface Props {
+  legacy?: NonNullable<Post['data']['legacyComments']>;
+}
+const { legacy = [] } = Astro.props;
+const enabled = Boolean(GISCUS.repoId && GISCUS.categoryId);
+const fmt = (d: Date) => d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', dateStyle: 'medium', timeStyle: 'short' });
+---
+
+{
+  (legacy.length > 0 || enabled) && (
+    <section class="comments" aria-label="コメント">
+      {legacy.length > 0 && (
+        <>
+          <h2>過去のコメント</h2>
+          <p class="muted" style="font-size:0.85rem">旧ブログ（WordPress）でいただいたコメントです。</p>
+          {legacy.map((c) => (
+            <article class:list={['legacy-comment', { reply: c.parent }]} id={`comment-${c.id}`}>
+              <header>
+                <strong>{c.author}</strong> · <time datetime={c.date.toISOString()}>{fmt(c.date)}</time>
+              </header>
+              <p>{c.body}</p>
+            </article>
+          ))}
+        </>
+      )}
+      {enabled && (
+        <>
+          <h2>コメント</h2>
+          <div class="giscus" />
+          <script
+            is:inline
+            src="https://giscus.app/client.js"
+            data-repo={GISCUS.repo}
+            data-repo-id={GISCUS.repoId}
+            data-category={GISCUS.category}
+            data-category-id={GISCUS.categoryId}
+            data-mapping="pathname"
+            data-strict="1"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="preferred_color_scheme"
+            data-lang="ja"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async
+          />
+          <script is:inline>
+            // Keep giscus in sync with the site theme toggle.
+            const setGiscusTheme = (theme) => {
+              const frame = document.querySelector('iframe.giscus-frame');
+              frame?.contentWindow?.postMessage({ giscus: { setConfig: { theme } } }, 'https://giscus.app');
+            };
+            window.addEventListener('themechange', (e) => setGiscusTheme(e.detail));
+            window.addEventListener('message', (e) => {
+              if (e.origin === 'https://giscus.app' && e.data?.giscus) setGiscusTheme(document.documentElement.dataset.theme);
+            }, { once: true });
+          </script>
+        </>
+      )}
+    </section>
+  )
+}

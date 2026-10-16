@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts, tagSlug } from '../../lib/posts';
+
+const posts = await getPosts();
+const byYear = Map.groupBy(posts, (p) => p.data.pubDate.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric' }));
+const tagCounts = new Map<string, number>();
+for (const p of posts) for (const t of p.data.tags) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+const topTags = [...tagCounts].sort((a, b) => b[1] - a[1]).slice(0, 12);
+---
+
+<Base title="Blog" description="科学・技術系の記事一覧">
+  <h1 class="page-title">Blog</h1>
+  <ul class="tag-list" style="margin-bottom:1rem">
+    {topTags.map(([t, n]) => <li><a class="tag" href={`/tags/${tagSlug(t)}/`}>{t} {n}</a></li>)}
+    <li><a class="tag" href="/tags/">すべてのタグ →</a></li>
+  </ul>
+  {
+    [...byYear].map(([year, list]) => (
+      <section>
+        <h2 class="year-heading">{year}</h2>
+        <PostList posts={list} />
+      </section>
+    ))
+  }
+</Base>

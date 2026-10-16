@@ -1,0 +1,22 @@
+---
+import type { Project } from '../data/projects';
+
+interface Props {
+  project: Project;
+}
+const { project: p } = Astro.props;
+---
+
+<article class="card">
+  <h3>
+    {p.url ? <a href={p.url}>{p.name}</a> : p.repo ? <a href={p.repo}>{p.name}</a> : p.name}
+  </h3>
+  <p>{p.description}</p>
+  <ul class="tag-list">
+    {p.tags.map((t) => <li><span class="tag">{t}</span></li>)}
+  </ul>
+  <div class="card-links">
+    {p.url && <a href={p.url}>{p.url.startsWith('/') ? '開く' : 'サイトを開く'} →</a>}
+    {p.repo && <a href={p.repo}>GitHub</a>}
+  </div>
+</article>

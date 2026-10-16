@@ -1,0 +1,100 @@
+---
+import 'katex/dist/katex.min.css';
+import { render } from 'astro:content';
+import { Image, getImage } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import Comments from '../../components/Comments.astro';
+import { getPosts, formatDate, isoDate, postUrl, tagSlug } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post, i) => ({
+    params: { slug: post.id },
+    props: { post, newer: posts[i - 1], older: posts[i + 1] },
+  }));
+}
+
+const { post, newer, older } = Astro.props;
+const { Content, headings } = await render(post);
+const { title, description, pubDate, updatedDate, tags, cover, draft, legacyComments } = post.data;
+const toc = headings.filter((h) => h.depth <= 3);
+const og = cover ? await getImage({ src: cover, width: 1200, format: 'jpeg' }) : undefined;
+---
+
+<Base title={title} description={description} image={og?.src} type="article">
+  <Fragment slot="head">
+    <meta property="article:published_time" content={isoDate(pubDate)} />
+    {updatedDate && <meta property="article:modified_time" content={isoDate(updatedDate)} />}
+  </Fragment>
+  <article>
+    <header class="post-header">
+      {draft && <p class="draft-note">下書き（本番ビルドでは公開されません）</p>}
+      <h1>{title}</h1>
+      <div class="post-meta">
+        <time datetime={isoDate(pubDate)}>{formatDate(pubDate)}</time>
+        {updatedDate && <span>更新 <time datetime={isoDate(updatedDate)}>{formatDate(updatedDate)}</time></span>}
+        <ul class="tag-list">
+          {tags.map((t) => <li><a class="tag" href={`/tags/${tagSlug(t)}/`}>{t}</a></li>)}
+        </ul>
+      </div>
+      {cover && <Image class="post-cover" src={cover} alt="" width={1200} loading="eager" />}
+    </header>
+
+    {
+      toc.length >= 4 && (
+        <details class="toc">
+          <summary>目次</summary>
+          <ol>
+            {toc.map((h) => (
+              <li style={h.depth === 3 ? 'margin-left:1rem;list-style:circle' : undefined}>
+                <a href={`#${h.slug}`}>{h.text}</a>
+              </li>
+            ))}
+          </ol>
+        </details>
+      )
+    }
+
+    <div class="prose" data-pagefind-body>
+      <Content />
+    </div>
+
+    <Comments legacy={legacyComments} />
+
+    <nav class="post-nav" aria-label="前後の記事">
+      {older && <a class="prev" href={postUrl(older)}><small>← 前の記事</small>{older.data.title}</a>}
+      {newer && <a class="next" href={postUrl(newer)}><small>次の記事 →</small>{newer.data.title}</a>}
+    </nav>
+  </article>
+</Base>
+
+<script>
+  // Language label + copy button for code blocks
+  for (const pre of document.querySelectorAll<HTMLPreElement>('.prose pre')) {
+    const wrap = document.createElement('div');
+    wrap.className = 'code-wrap';
+    pre.replaceWith(wrap);
+    wrap.append(pre);
+    const lang = pre.dataset.language;
+    if (lang && lang !== 'plaintext' && lang !== 'text') {
+      const label = document.createElement('span');
+      label.className = 'lang';
+      label.textContent = lang;
+      wrap.append(label);
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pre.querySelector('code')?.innerText ?? pre.innerText);
+        btn.textContent = 'Copied!';
+      } catch {
+        btn.textContent = 'Failed';
+      }
+      setTimeout(() => (btn.textContent = 'Copy'), 1500);
+    });
+    wrap.append(btn);
+  }
+</script>
