@@ -54,18 +54,18 @@ export const PROJECT_GROUPS: { title: string; items: Project[] }[] = [
         tags: ['Keyboard', 'Firmware'],
         featured: true,
       },
-      {
+      /*{
         name: 'celum',
         description: '物理次元と単位を第一級でサポートする、科学計算用 CSV エディタ。',
         repo: 'https://github.com/haborite/celum',
         tags: ['Science', 'Units'],
-      },
-      {
+      },*/
+      /*{
         name: 'flashsn8-gui',
         description: 'SN8 マイコン書き込みツール flashsn8 の簡易 GUI。',
         repo: 'https://github.com/haborite/flashsn8-gui',
         tags: ['Hardware'],
-      },
+      },*/
       {
         name: 'ComfyUI-NoiseTools',
         description: 'ComfyUI でノイズを扱うためのカスタムノード。',
